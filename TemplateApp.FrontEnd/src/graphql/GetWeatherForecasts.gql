@@ -1,0 +1,9 @@
+query GetWeatherForecasts {
+  weatherForecasts {
+    date                      
+    id
+    summary
+    temperatureC
+    temperatureF
+  }
+}
