@@ -5,6 +5,10 @@ That template sets up the client side under the nice new esproj project type whi
 
 The front end is based on Create React App with the Webpack Dev Server proxy configured for forward requests on to the .NET Web API
 
+# Running the app
+
+Open the solution in Visual Studio, set TemplateApp.FrontEnd and TemplateApp.WebApi as your startup projects and click start.
+
 # Whats's been added
 
 ## Tech changes
@@ -31,21 +35,51 @@ The UI from the template Blazor app has been added along with client side routin
 
 ![AfterChanges](./Resources/AppAfterChanges.png)
 
-# Notes
+# CSS Isolation Notes
 
-One of the tricky parts I came across was that in the template Blazor app it showcases the CSS isolation features built into Blazor/Razor. Here if you follow the naming convention
+One of the tricky parts I came across was that in the template Blazor app it showcases the CSS isolation features built into Blazor/Razor. Converting this wasn't entierly straightforward.
+
+## Blazor technique
+
+With [Blazor CSS isolation](https://learn.microsoft.com/en-us/aspnet/core/blazor/components/css-isolation) if you follow the naming convention
 
 ```
 ├── MyComponent.razor
 ├── MyComponent.razor.css
 ```
-The framework will isolate the css in that file so that it only applies to that component.
+The framework will isolate the css in that file so that it only applies to that component. The way this works is for example in MainLayout.razor is each tag will have a unique attribute for that component added to it in the final compiled markup E.G. 
+```diff
+- <div class="page">
+-    ...
++ <div class="page" b-45rkf8v3vv="">
++    ...
+```
 
-Create React App has built in support for something similar - CSS modules. Again there is a naming convention then a slightly different syntax for importing / applying styles in your component. However the way they are implemented is slightly different. 
+Then in the corresponding MainLayout.css its content will get altered in the final CSS bundle like so
+```diff
+- .page { 
+-   ...
++ .page[b-45rkf8v3vv] { 
++   ...
+```
 
-The Blazor implementation will generate attributes against your components HTML elements and then re-write your css to only apply the styles to elements with those attributes. The CRA implementation generates a hash for each style and then you get an object with the hashes you can use to apply uniquely to elements in your component.
+## Create React App technique
 
-However because you are no longer applying the original class name it doesn't play so nicely when you are overriding vendor supplied styles, E.G. Bootstrap.
+Create React App has built in support for something similar - [CSS modules](https://create-react-app.dev/docs/adding-a-css-modules-stylesheet/). Again there is a naming convention E.G.
+```
+├── MyComponent.tsx
+├── MyComponent.module.css
+```
+Then a slightly different syntax for importing / applying styles in your component. Basically you can import your styles from the stylesheet into an object in your component and then use them like this 
+```jsx
+return <button className={styles.error}>Error Button</button>;
+```
+Which will render as something like
+```html
+<button class="Button_error_ax7yz">Error Button</button>
+```
+
+However because you are no longer applying the original class name it doesn't play so nicely when you are overriding vendor supplied styles, E.G. Bootstrap's btn class would get replaced and the original style would no longer apply.
 
 The quick fix for this I applied was the CssModuleNameComposer class which will take a list of unadulterated class names and return the className string including any CSS module hashes that have been defined for that class name.
 
